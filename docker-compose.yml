@@ -1,0 +1,52 @@
+version: "3.9"
+
+x-app: &default-app
+  build: .
+  restart: always
+
+x-env: &env
+  env_file:
+    - .env
+
+services:
+  odoo:
+    env_file:
+      - .env
+    image: odoo:17.0
+    container_name: odoo
+    expose:
+      - 8069
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - config:/etc/odoo
+      - ./addons:/mnt/extra-addons
+      - data:/var/lib/odoo
+    restart: always
+#    links:
+#      - db
+    command: -d postgres -u product_labeling  # odoo --without-demo
+    #-d postgres -u product_labeling
+    #--addons-path /mnt/extra-addons  -d postgres
+
+  db:
+    <<: *env
+    container_name: odoo-db
+    image: postgres:15.3-alpine
+    expose:
+      - 5432
+    healthcheck:
+      test: pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - odoo-pg:/var/lib/postgresql/data
+
+
+volumes:
+  odoo-pg:
+  config:
+  extra-addons:
+  data:

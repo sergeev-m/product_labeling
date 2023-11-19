@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+product_labeling.access_product_product,access_product_product,product_labeling.model_product_product,base.group_user,1,1,1,1
+
+
+product_labeling.access_product_status,access_product_status,product_labeling.model_product_status,base.group_user,1,0,0,0
+product_labeling.access_product_warehouse,access_product_warehouse,product_labeling.model_product_warehouse,base.group_user,1,0,0,0
+product_labeling.access_product_expenses_receipts,access_product_expenses_receipts,product_labeling.model_product_expenses_receipts,base.group_user,1,1,1,1
+product_labeling.access_product_marked_product,access_product_marked_product,product_labeling.model_product_marked_product,base.group_user,1,1,1,1
+product_labeling.access_product_marked_product_expenses_receipts,access_product_marked_product_expenses_receipts,product_labeling.model_product_marked_product_expenses_receipts,base.group_user,1,1,1,1
+
+product_labeling.access_product_act,access_product_act,product_labeling.model_product_act,base.group_user,1,1,1,1

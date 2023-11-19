@@ -1,0 +1,43 @@
+<odoo>
+  <data>
+
+
+  </data>
+</odoo>
+
+
+
+
+
+
+<!--    <record id="action_product_create" model="ir.actions.act_window">-->
+
+<!--        <field name="name">product</field>-->
+<!--        <field name="type">ir.actions.act_window</field>-->
+<!--        <field name="res_model">product.product</field>-->
+<!--        <field name="view_mode">tree,form</field>-->
+<!--    </record>-->
+
+
+
+<!--    <menuitem id="menu_add_product"-->
+<!--              name="Добавить товар"-->
+<!--              parent="menu_product_operations"-->
+<!--              action="action_product_create"-->
+<!--              sequence="10"/>-->
+
+
+
+
+<!--    <record id="action_product_akt" model="ir.actions.act_window">-->
+<!--        <field name="name">Akt</field>-->
+<!--        <field name="type">ir.actions.act_window</field>-->
+<!--        <field name="res_model">product.akt</field>-->
+<!--        <field name="view_mode">tree,form</field>-->
+<!--    </record>-->
+
+<!--    <menuitem id="menu_create_akt"-->
+<!--              name="Создать акт"-->
+<!--              parent="menu_product_operations"-->
+<!--              action="action_product_akt"-->
+<!--              sequence="10"/>-->
