@@ -1,4 +1,9 @@
-from odoo import api, fields, models, _
+import logging
+
+from odoo import api, fields, models
+from  odoo.service.server import _logger
+
+# _logger = logging.getLogger(__name__)
 
 
 class Product(models.Model):
@@ -39,29 +44,55 @@ class MarkedProductExpensesReceipts(models.Model):
         string='Тип статьи затрат/приходов',
         required=True
     )
-    marked_product_id = fields.Many2one('product.marked_product')
-    akt_id = fields.Many2one('product.act')
+    act_id = fields.Many2one('product.act')
     currency_id = fields.Many2one(
         'res.currency',
         default=lambda self: self.env.ref('base.RUB')
     )
-    value = fields.Monetary(string='Значение')
+    value = fields.Monetary(string='Значение', required=True)
 
 
 class MarkedProduct(models.Model):
     _name = 'product.marked_product'
     _description = 'Маркированный товар'
 
+    # act_ids = fields.One2many(comodel_name='product.act', inverse_name='marked_product_id')
+    act_ids = fields.Many2many(
+        'product.act',
+        relation='marked_product_act_rel',
+        column1='akt_id',
+        column2='marked_product_id',
+        string='Акты'
+    )
+    expenses_receipts_ids = fields.One2many(
+        comodel_name='product.marked_product_expenses_receipts',
+        inverse_name='act_id',
+        string='Затраты/приходы',
+        compute='_compute_expenses_receipts',
+        readonly=True,
+    )
+    total_amount = fields.Monetary(string='Прибыль', compute='_compute_total_amount', readonly=True)
+    currency_id = fields.Many2one('res.currency', default=lambda self: self.env.ref('base.RUB'), readonly=True) # todo
+
+    def _compute_expenses_receipts(self):
+        for marked_product in self:
+            marked_product.expenses_receipts_ids = self.env[
+                'product.marked_product_expenses_receipts'].search(
+                [('act_id', 'in', marked_product.act_ids.ids)]
+            )
+
+    # @api.depends('expenses_receipts_ids')
+    def _compute_total_amount(self):
+        for marked_product in self:
+            p = marked_product.expenses_receipts_ids.mapped('value')
+            marked_product.total_amount = sum(p)
+
     product_id = fields.Many2one('product.product')
     warehouse_id = fields.Many2one('product.warehouse')
     status_id = fields.Many2one('product.status')
-    expenses_ids = fields.One2many(
-        comodel_name='product.marked_product_expenses_receipts',
-        inverse_name='marked_product_id',
-        string='Затраты/приходы'
-    )
+
     name = fields.Char(
-        'Маркерованный продукт',
+        'Маркированный продукт',
         compute='_compute_name',
         readonly=True,
         store=False
@@ -76,9 +107,17 @@ class ProductAct(models.Model):
     _name = 'product.act'
     _description = 'Акты'
 
+    name = fields.Char('Название', default=lambda self: self._get_default_value())
     product_id = fields.Many2one('product.product', string='Продукт')
-    marked_product_id = fields.Many2one(
+    # marked_product_id = fields.Many2one(
+    #     'product.marked_product',
+    #     string='Маркированный продукт'
+    # )
+    marked_product_ids = fields.Many2many(
         'product.marked_product',
+        relation='marked_product_act_rel',
+        column1='marked_product_id',
+        column2='akt_id',
         string='Маркированный продукт'
     )
     warehouse_from_id = fields.Many2one(
@@ -90,22 +129,21 @@ class ProductAct(models.Model):
         string='Назначить новый склад',
         required=True
     )
-    status_id = fields.Many2one('product.status', required=True)
+    status_id = fields.Many2one('product.status', required=True, string='Статус')
 
     expenses_ids = fields.One2many(
         comodel_name='product.marked_product_expenses_receipts',
-        inverse_name='akt_id',
+        inverse_name='act_id',
         string='Затраты/приходы',
     )
-    amount = fields.Integer('Количество', required=True)
-    status = fields.Char('_compute_status', readonly=True, store=False)
-    sequence = fields.Integer(
-        string='Порядковый номер',
-        default=lambda self: self.env['ir.sequence'].next_by_code('product.act.id') or 1,
+    amount = fields.Integer('Количество', default=1, required=True)
+    status = fields.Char(
+        '_compute_status',
+        default=lambda self: self.status_id.name,  # todo
         readonly=True,
-        copy=False,
         store=False
-    )  # todo
+    )
+
     current_date = fields.Date(
         string='Текущая дата',
         default=fields.Date.context_today,
@@ -114,11 +152,9 @@ class ProductAct(models.Model):
     )
     is_carried_out = fields.Boolean('Проведен')
 
-    @api.model
-    def create(self, values):
-        if values.get('id', _('New')) == _('New'):
-            values['sequence'] = self.env['ir.sequence'].next_by_code('product.act') or 1
-        return super(ProductAct, self).create(values)
+    def _get_default_value(self):
+        sequence = self.env['ir.sequence'].next_by_code('product.act') or 'Fallback Value'
+        return sequence
 
     @api.onchange('status_id')
     def _compute_status(self):
@@ -126,62 +162,20 @@ class ProductAct(models.Model):
 
     def carry_out_an_act(self):
         marked_product_env = self.env['product.marked_product']
-        marked_product_expenses_receipts = self.env['product.marked_product_expenses_receipts']
 
         for rec in self:
             if rec.status_id.name.lower() == 'покупка':
                 values = {
                     'product_id': self.product_id.id,
                     'warehouse_id': self.warehouse_to_id.id,
-                    'status_id': self.status_id.id
+                    'status_id': self.status_id.id,
+                    'act_ids': [rec.id]
                 }
-                marked_product_id = marked_product_env.create([values for _ in range(rec.amount)])
-                expenses = marked_product_expenses_receipts.search([('akt_id', '=', rec.id)])
-                for row in expenses:
-                    row.write({'marked_product_id': marked_product_id})
-
+                marked_product_env.create([values for _ in range(rec.amount)])
             else:
-                rec.marked_product_id.write({
+                rec.marked_product_ids.write({
                     'warehouse_id': rec.warehouse_to_id.id,
                     'status_id': rec.status_id.id
                 })
 
             rec.write({'is_carried_out': True})
-
-
-
-
-    # @api.model
-    # def create_expenses_receipts(self):
-    #     expenses_receipts_data = {
-    #         'product_id': self.product_id.id,
-    #         'marked_product_id': self.marked_product_id.id,
-    #         'akt_id': self.id,
-    #         'currency_id': self.product_id.currency_id.id,
-    #         'value': 100,
-    #     }
-    #
-    #     expenses_receipts = self.env['product.marked_product_expenses_receipts'].create(
-    #         expenses_receipts_data)
-    #
-    #     return {
-    #         'type': 'ir.actions.client',
-    #         'tag': 'reload',
-    #     }
-
-    # @api.depends('status_id')
-    # def _compute_marked_product(self):
-    #     for record in self:
-    #         # Если status_id равен 'покупка', пытаемся взять marked_product_id из product.product
-    #         # if record.status_id and record.status_id.name == 'покупка':
-    #             # Вам нужно адаптировать этот код в соответствии с вашей логикой
-    #         product_model = self.env['product.product']
-    #         other_product = product_model.search([], limit=1)
-    #         if other_product:
-    #             record.marked_product_id = other_product.id
-
-
-        # related_recordset = self.env["the.relation.obj"].search([("some", "condition","here")])
-        # self.marked_product_id.ids = related_ids
-
-

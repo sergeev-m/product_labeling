@@ -7,13 +7,6 @@
                 <field name="model">product.act</field>
                 <field name="arch" type="xml">
                 <form>
-<!--                    <group>-->
-<!--                        <button string="Провести акт"-->
-<!--                                type="object" class="oe_highlight"-->
-<!--                                name="carry_out_an_act"-->
-<!--                                widget="object"-->
-<!--                        />-->
-<!--                    </group>-->
 
                 <header>
                     <div class="o_form_buttons">
@@ -22,14 +15,12 @@
                                 type="object"
                                 string="Провести акт"
                                 class="oe_highlight"
-                                invisible="context.get('is_carried_out', False)"
-                                required="not context.get('is_carried_out', False)"/>
+                                invisible="is_carried_out"
                         />
                     </div>
-
                     <div class="o_form_label">
                         <span>Акт изменения свойств товаров #</span>
-                        <field name="sequence" class="oe_inline"/>
+                        <field name="name"/>
                     </div>
                 </header>
 
@@ -40,7 +31,7 @@
                                invisible="status != 'Покупка'"
                                required="status == 'Покупка'"
                         />
-                        <field name="marked_product_id"
+                        <field name="marked_product_ids"
                                invisible="status == 'Покупка'"
                                required="status != 'Покупка'"
                         />
@@ -53,13 +44,12 @@
                         <field name="amount"/>
 
                         <field name="status" invisible="1"/>
-                        <field name="is_carried_out"/>
+                        <field name="is_carried_out" invisible="1"/>
                     </group>
 
                             <field name="expenses_ids">
                                 <tree>
-<!--                                    <field name="product_id"/>-->
-                                    <field name="marked_product_id"/>
+<!--                                    <field name="marked_product_id"/>-->
                                     <field name="expenses_id"/>
                                     <field name="currency_id"/>
                                     <field name="value"/>
@@ -82,16 +72,19 @@
         </field>
     </record>
 
+
     <record id="product_act_tree_view" model="ir.ui.view">
         <field name="name">product.act.tree</field>
         <field name="model">product.act</field>
         <field name="arch" type="xml">
             <tree>
-                <field name="marked_product_id"/>
+                <field name="name" string="Номер Акта"/>
+<!--                <field name="product_id"/>-->
+<!--                <field name="marked_product_id"/>-->
                 <field name="warehouse_from_id"/>
                 <field name="warehouse_to_id"/>
                 <field name="status_id"/>
-                <field name="amount"/>
+<!--                <field name="amount"/>-->
                 <field name="is_carried_out"/>
             </tree>
         </field>
@@ -105,12 +98,6 @@
         <field name="view_id" ref="product_act_tree_view"/>
     </record>
 
-    <menuitem id="menu_add_product_act"
-              name="Acts"
-              parent="menu_product_operations"
-              action="action_product_act"
-              sequence="10"/>
-
 
 
     <record id="action_product_create" model="ir.actions.act_window">
@@ -120,61 +107,67 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_add_product"
-              name="Добавить товар"
-              parent="menu_product_operations"
-              action="action_product_create"
-              sequence="10"/>
+
+
+
+
+      <record id="product_product_tree_view" model="ir.ui.view">
+        <field name="name">product.marked_product.tree</field>
+        <field name="model">product.marked_product</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="warehouse_id"/>
+                <field name="status_id"/>
+            </tree>
+        </field>
+    </record>
+
+
+    <record id="view_marked_product_form" model="ir.ui.view">
+        <field name="name">product.marked_product.form</field>
+        <field name="model">product.marked_product</field>
+        <field name="arch" type="xml">
+
+            <form>
+                <header>
+                    <div>
+                        <field name="name"/>
+                    </div>
+                </header>
+
+            <group>
+                <field name="product_id"/>
+                <field name="warehouse_id"/>
+                <field name="status_id"/>
+
+                    <field name="expenses_receipts_ids" widget="one2many_list">
+                        <tree>
+                            <field name="create_date"/>
+                            <field name="expenses_id"/>
+                            <field name="currency_id"/>
+                            <field name="value"/>
+                        </tree>
+                    </field>
+
+            </group>
+            <group>
+                <field name="total_amount" string="Прибыль" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+            </group>
+            </form>
+        </field>
+    </record>
+
+
+
+      <record id="action_product_marked_product" model="ir.actions.act_window">
+        <field name="name">Product</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">product.marked_product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="product_product_tree_view"/>
+    </record>
+
+
   </data>
 </odoo>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!--            <form>-->
-<!--                    <sheet>-->
-<!--                        <group>-->
-<!--                            <field name="name"/>-->
-<!--                            <field name="date"/>-->
-<!--                            <field name="marked_product_id"/>-->
-<!--                            <field name="warehouse_from_id"/>-->
-<!--                            <field name="product_ids" widget="many2many_tags"/>-->
-<!--                        </group>-->
-<!--                    </sheet>-->
-<!--                </form>-->
-<!--        </record>-->
-
-
-
-<!--<header>&ndash;&gt;-->
-<!--            <button-->
-<!--                string="Создать акт"-->
-<!--                class="btn-primary"-->
-<!--                name="Создать акт"-->
-<!--                type="object"-->
-<!--            />-->
-<!--        </header>-->

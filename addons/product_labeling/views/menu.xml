@@ -10,6 +10,21 @@
               parent="menu_product_root"
               sequence="10"/>
 
+    <menuitem id="menu_view_marked_product"
+              name="Маркированные товары"
+              parent="menu_product_operations"
+              action="action_product_marked_product"
+              sequence="10"/>
 
+    <menuitem id="menu_add_product"
+              name="Добавить товар"
+              parent="menu_product_operations"
+              action="action_product_create"
+              sequence="10"/>
 
+    <menuitem id="menu_add_product_act"
+              name="Acts"
+              parent="menu_product_operations"
+              action="action_product_act"
+              sequence="10"/>
 </odoo>
