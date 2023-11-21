@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 {
     'name': "product_labeling",
     'summary': "Short (1 phrase/line) summary of the module's purpose",
@@ -12,11 +13,12 @@
     'depends': ['base'],
     'data': [
         'security/ir.model.access.csv',
+        'views/act_views.xml',
         'views/menu.xml',
         'views/product.xml',
-        # 'views/views.xml'
+        'views/views.xml'
     ],
-    'demo': [
-        'demo/demo.xml',
-    ],
+    # 'demo': [
+    #     'demo/demo.xml',
+    # ],
 }

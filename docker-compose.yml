@@ -1,13 +1,5 @@
 version: "3.9"
 
-x-app: &default-app
-  build: .
-  restart: always
-
-x-env: &env
-  env_file:
-    - .env
-
 services:
   odoo:
     env_file:
@@ -24,14 +16,11 @@ services:
       - ./addons:/mnt/extra-addons
       - data:/var/lib/odoo
     restart: always
-#    links:
-#      - db
-    command: -d postgres -u product_labeling  # odoo --without-demo
-    #-d postgres -u product_labeling
-    #--addons-path /mnt/extra-addons  -d postgres
+    command: -d postgres -u product_labeling
 
   db:
-    <<: *env
+    env_file:
+      - .env
     container_name: odoo-db
     image: postgres:15.3-alpine
     expose:
