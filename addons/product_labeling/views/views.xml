@@ -1,6 +1,26 @@
 <odoo>
-  <data>
+    <data>
+        <record id="action_product_act" model="ir.actions.act_window">
+            <field name="name">Akt</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">product.act</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="product_act_tree_view"/>
+        </record>
 
+        <record id="action_product_create" model="ir.actions.act_window">
+            <field name="name">product</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">product.product</field>
+            <field name="view_mode">tree,form</field>
+        </record>
 
-  </data>
+        <record id="action_product_marked_product" model="ir.actions.act_window">
+            <field name="name">Product</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">product.marked_product</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="product_product_tree_view"/>
+        </record>
+    </data>
 </odoo>

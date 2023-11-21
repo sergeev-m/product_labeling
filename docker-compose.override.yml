@@ -6,8 +6,6 @@ services:
       APP_LOGLEVEL: debug
     ports:
        - "8069:8069"
-#    volumes:
-#      - ./:/app
 
   db:
     ports:

@@ -1,9 +1,5 @@
-import logging
-
 from odoo import api, fields, models
-from  odoo.service.server import _logger
-
-# _logger = logging.getLogger(__name__)
+from odoo.exceptions import ValidationError
 
 
 class Product(models.Model):
@@ -56,7 +52,6 @@ class MarkedProduct(models.Model):
     _name = 'product.marked_product'
     _description = 'Маркированный товар'
 
-    # act_ids = fields.One2many(comodel_name='product.act', inverse_name='marked_product_id')
     act_ids = fields.Many2many(
         'product.act',
         relation='marked_product_act_rel',
@@ -64,6 +59,7 @@ class MarkedProduct(models.Model):
         column2='marked_product_id',
         string='Акты'
     )
+
     expenses_receipts_ids = fields.One2many(
         comodel_name='product.marked_product_expenses_receipts',
         inverse_name='act_id',
@@ -72,7 +68,17 @@ class MarkedProduct(models.Model):
         readonly=True,
     )
     total_amount = fields.Monetary(string='Прибыль', compute='_compute_total_amount', readonly=True)
-    currency_id = fields.Many2one('res.currency', default=lambda self: self.env.ref('base.RUB'), readonly=True) # todo
+    currency_id = fields.Many2one(
+        'res.currency',
+        default=lambda self: self.env.ref('base.RUB'),
+        readonly=True)
+    amount = fields.Integer('Количество товара')
+
+    @api.constrains('amount')
+    def _check_amount_positive(self):
+        for record in self:
+            if record.amount < 0:
+                raise ValidationError('Не достаточное количество товара.')
 
     def _compute_expenses_receipts(self):
         for marked_product in self:
@@ -81,7 +87,6 @@ class MarkedProduct(models.Model):
                 [('act_id', 'in', marked_product.act_ids.ids)]
             )
 
-    # @api.depends('expenses_receipts_ids')
     def _compute_total_amount(self):
         for marked_product in self:
             p = marked_product.expenses_receipts_ids.mapped('value')
@@ -102,6 +107,14 @@ class MarkedProduct(models.Model):
         for record in self:
             record.name = f'{record.product_id.name} #{record.id}'
 
+    def copy(self, default=None):
+        if default is None:
+            default = {}
+        new_record = super().copy(default)
+        act_ids = [(4, act.id) for act in self.act_ids]
+        new_record.write({'act_ids': act_ids})
+        return new_record
+
 
 class ProductAct(models.Model):
     _name = 'product.act'
@@ -109,10 +122,6 @@ class ProductAct(models.Model):
 
     name = fields.Char('Название', default=lambda self: self._get_default_value())
     product_id = fields.Many2one('product.product', string='Продукт')
-    # marked_product_id = fields.Many2one(
-    #     'product.marked_product',
-    #     string='Маркированный продукт'
-    # )
     marked_product_ids = fields.Many2many(
         'product.marked_product',
         relation='marked_product_act_rel',
@@ -122,7 +131,7 @@ class ProductAct(models.Model):
     )
     warehouse_from_id = fields.Many2one(
         'product.warehouse',
-        string='Применить для товаров со склада'
+        string='Применить для товаров со склада',
     )
     warehouse_to_id = fields.Many2one(
         'product.warehouse',
@@ -130,7 +139,6 @@ class ProductAct(models.Model):
         required=True
     )
     status_id = fields.Many2one('product.status', required=True, string='Статус')
-
     expenses_ids = fields.One2many(
         comodel_name='product.marked_product_expenses_receipts',
         inverse_name='act_id',
@@ -139,11 +147,10 @@ class ProductAct(models.Model):
     amount = fields.Integer('Количество', default=1, required=True)
     status = fields.Char(
         '_compute_status',
-        default=lambda self: self.status_id.name,  # todo
+        default=lambda self: self.status_id.name,
         readonly=True,
         store=False
     )
-
     current_date = fields.Date(
         string='Текущая дата',
         default=fields.Date.context_today,
@@ -166,16 +173,31 @@ class ProductAct(models.Model):
         for rec in self:
             if rec.status_id.name.lower() == 'покупка':
                 values = {
-                    'product_id': self.product_id.id,
-                    'warehouse_id': self.warehouse_to_id.id,
-                    'status_id': self.status_id.id,
+                    'product_id': rec.product_id.id,
+                    'warehouse_id': rec.warehouse_to_id.id,
+                    'status_id': rec.status_id.id,
+                    'amount': rec.amount,
                     'act_ids': [rec.id]
                 }
-                marked_product_env.create([values for _ in range(rec.amount)])
+                marked_product_id = marked_product_env.create(values)
+                rec.write({'marked_product_ids': marked_product_id})
+
             else:
-                rec.marked_product_ids.write({
-                    'warehouse_id': rec.warehouse_to_id.id,
-                    'status_id': rec.status_id.id
-                })
+                for product in rec.marked_product_ids:
+                    old_amount = product.amount
+                    values = {
+                        'warehouse_id': rec.warehouse_to_id.id,
+                        'status_id': rec.status_id.id,
+                        'amount': rec.amount if rec.status_id.name.lower() != 'продажа' else 0,
+                        'act_ids': [(4, rec.id, 0)]
+                    }
+
+                    if not old_amount - rec.amount:
+                        product.write(values)
+                    else:
+                        product.write({'amount': old_amount - rec.amount})
+                        product.copy(values)
+                        # rec.write({'marked_product_ids': [(6, 0, [new_marked.id])]})
+                        rec.write({'marked_product_ids': [(3, product.id)]})
 
             rec.write({'is_carried_out': True})

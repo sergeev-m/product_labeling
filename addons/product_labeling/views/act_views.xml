@@ -1,0 +1,84 @@
+<odoo>
+    <data>
+        <record id="product_act_form_view" model="ir.ui.view">
+            <field name="name">product.act.form</field>
+            <field name="model">product.act</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <div class="o_form_buttons">
+                            <button
+                                    name="carry_out_an_act"
+                                    type="object"
+                                    string="Провести акт"
+                                    class="oe_highlight"
+                                    invisible="is_carried_out"
+                            />
+                        </div>
+                        <div class="o_form_label">
+                            <span>Акт изменения свойств товаров #</span>
+                            <field name="name"/>
+                        </div>
+                    </header>
+                    <sheet>
+                        <group>
+                            <field name="current_date" class="oe_inline"/>
+                            <field name="product_id"
+                                   invisible="status != 'Покупка'"
+                                   required="status == 'Покупка'"
+                            />
+                            <field name="marked_product_ids"
+                                   invisible="status == 'Покупка'"
+                                   required="status != 'Покупка'"
+                            />
+                            <field name="warehouse_from_id"
+                                   invisible="status == 'Покупка'"
+                                   required="status != 'Покупка'"
+                            />
+                            <field name="amount"/>
+                            <field name="warehouse_to_id"/>
+                            <field name="status_id"/>
+                            <field name="amount"/>
+                            <field name="status" invisible="1"/>
+                            <field name="is_carried_out" invisible="1"/>
+                        </group>
+                        <field name="expenses_ids">
+                            <tree>
+                                <field name="expenses_id"/>
+                                <field name="currency_id"/>
+                                <field name="value"/>
+                            </tree>
+                            <form>
+                                <group>
+                                    <group>
+                                        <field name="expenses_id"/>
+                                    </group>
+                                    <group>
+                                      <field name="currency_id"/>
+                                       <field name="value"/>
+                                    </group>
+                                </group>
+                            </form>
+                        </field>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+
+        <record id="product_act_tree_view" model="ir.ui.view">
+            <field name="name">product.act.tree</field>
+            <field name="model">product.act</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name" string="Номер Акта"/>
+                    <field name="warehouse_from_id"/>
+                    <field name="warehouse_to_id"/>
+                    <field name="status_id"/>
+                    <field name="amount"/>
+                    <field name="is_carried_out"/>
+                </tree>
+            </field>
+        </record>
+    </data>
+</odoo>
