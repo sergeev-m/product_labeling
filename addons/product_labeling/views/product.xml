@@ -35,13 +35,15 @@
                                invisible="status == 'Покупка'"
                                required="status != 'Покупка'"
                         />
+
                         <field name="warehouse_from_id"
                                invisible="status == 'Покупка'"
                                required="status != 'Покупка'"
                         />
+                        <field name="amount"/>
                         <field name="warehouse_to_id"/>
                         <field name="status_id"/>
-                        <field name="amount"/>
+<!--                        <field name="amount"/>-->
 
                         <field name="status" invisible="1"/>
                         <field name="is_carried_out" invisible="1"/>

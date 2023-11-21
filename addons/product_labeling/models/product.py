@@ -1,10 +1,5 @@
-import logging
-
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
-from  odoo.service.server import _logger
-
-# _logger = logging.getLogger(__name__)
 
 
 class Product(models.Model):
@@ -57,7 +52,6 @@ class MarkedProduct(models.Model):
     _name = 'product.marked_product'
     _description = 'Маркированный товар'
 
-    # act_ids = fields.One2many(comodel_name='product.act', inverse_name='marked_product_id')
     act_ids = fields.Many2many(
         'product.act',
         relation='marked_product_act_rel',
@@ -74,14 +68,17 @@ class MarkedProduct(models.Model):
         readonly=True,
     )
     total_amount = fields.Monetary(string='Прибыль', compute='_compute_total_amount', readonly=True)
-    currency_id = fields.Many2one('res.currency', default=lambda self: self.env.ref('base.RUB'), readonly=True) # todo
+    currency_id = fields.Many2one(
+        'res.currency',
+        default=lambda self: self.env.ref('base.RUB'),
+        readonly=True)
     amount = fields.Integer('Количество товара')
 
     @api.constrains('amount')
     def _check_amount_positive(self):
         for record in self:
             if record.amount < 0:
-                raise ValidationError('Количество товара должно быть больше нуля.')  # todo
+                raise ValidationError('Не достаточное количество товара.')
 
     def _compute_expenses_receipts(self):
         for marked_product in self:
@@ -114,50 +111,8 @@ class MarkedProduct(models.Model):
         if default is None:
             default = {}
         new_record = super().copy(default)
-
-        act_mapping = {}
-
-        # for act in self.act_ids:
-        #     new_act = act.copy({'marked_product_ids': [(4, new_record.id)]})
-        #     act_mapping[act.id] = new_act.id
-
-        # new_act_ids = [(6, 0, list(act_mapping.values()))]
-        # new_record.write({'act_ids': new_act_ids})
-
-
-        # for related_record in self.act_ids:
-        #     related_record.copy({'marked_product_id': new_record.id})
-
         act_ids = [(4, act.id) for act in self.act_ids]
-
-        # act_mapping = {}
-        #
-        # for act in self.act_ids:
-        #     new_act = act.copy({'marked_product_ids': new_record.id})
-        #     act_mapping[act.id] = new_act.id
-        #
-        # new_act_ids = [(6, 0, list(act_mapping.values()))]
         new_record.write({'act_ids': act_ids})
-
-
-
-        # for act in self.act_ids:
-        #     new_act = act.copy({'marked_product_id': new_record.id})
-        #     id_mapping[act.id] = new_act.id
-
-        # new_act_ids = [(6, 0, list(act_mapping.values()))]
-        # new_record.write({'act_ids': new_act_ids})
-
-        # for act in self.act_ids:
-        #     new_act = act.copy()
-        #     id_mapping[act.id] = new_act.id
-
-        # new_act_ids = [(4, i.id) for i in self.act_ids]
-        # new_record.write({'act_ids': new_act_ids})
-        #
-        # # act_ids = [act.id for act in self.act_ids]
-        # # new_record.write({'act_ids': new_act_ids})
-        #
         return new_record
 
 
@@ -167,12 +122,6 @@ class ProductAct(models.Model):
 
     name = fields.Char('Название', default=lambda self: self._get_default_value())
     product_id = fields.Many2one('product.product', string='Продукт')
-
-    # marked_product_id = fields.Many2one(
-    #     'product.marked_product',
-    #     string='Маркированный продукт'
-    # )
-
     marked_product_ids = fields.Many2many(
         'product.marked_product',
         relation='marked_product_act_rel',
@@ -180,11 +129,9 @@ class ProductAct(models.Model):
         column2='akt_id',
         string='Маркированный продукт'
     )
-
     warehouse_from_id = fields.Many2one(
         'product.warehouse',
         string='Применить для товаров со склада',
-        default=lambda self: self.marked_product_ids.warehouse_id.id or None
     )
     warehouse_to_id = fields.Many2one(
         'product.warehouse',
@@ -192,7 +139,6 @@ class ProductAct(models.Model):
         required=True
     )
     status_id = fields.Many2one('product.status', required=True, string='Статус')
-
     expenses_ids = fields.One2many(
         comodel_name='product.marked_product_expenses_receipts',
         inverse_name='act_id',
@@ -201,11 +147,10 @@ class ProductAct(models.Model):
     amount = fields.Integer('Количество', default=1, required=True)
     status = fields.Char(
         '_compute_status',
-        default=lambda self: self.status_id.name,  # todo
+        default=lambda self: self.status_id.name,
         readonly=True,
         store=False
     )
-
     current_date = fields.Date(
         string='Текущая дата',
         default=fields.Date.context_today,
@@ -243,22 +188,15 @@ class ProductAct(models.Model):
                     values = {
                         'warehouse_id': rec.warehouse_to_id.id,
                         'status_id': rec.status_id.id,
-                        'amount': rec.amount,
+                        'amount': rec.amount if rec.status_id.name.lower() != 'продажа' else 0,
                         'act_ids': [(4, rec.id, 0)]
                     }
 
                     if not old_amount - rec.amount:
-                        if rec.status_id.name.lower() == 'продажа':
-                            values['amount'] = 0
                         product.write(values)
-
                     else:
-                        if rec.status_id.name.lower() == 'продажа':
-                            values['amount'] = 0
                         product.write({'amount': old_amount - rec.amount})
-
-
-                        new_marked = product.copy(values)
+                        product.copy(values)
                         # rec.write({'marked_product_ids': [(6, 0, [new_marked.id])]})
                         rec.write({'marked_product_ids': [(3, product.id)]})
 
