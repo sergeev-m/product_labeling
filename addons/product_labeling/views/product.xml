@@ -84,7 +84,7 @@
                 <field name="warehouse_from_id"/>
                 <field name="warehouse_to_id"/>
                 <field name="status_id"/>
-<!--                <field name="amount"/>-->
+                <field name="amount"/>
                 <field name="is_carried_out"/>
             </tree>
         </field>
